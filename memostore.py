@@ -96,13 +96,27 @@ def _due_of(note: dict) -> datetime | None:
         return None
 
 
+def is_overdue(note: dict, now: datetime) -> bool:
+    """真过期：日期早于今天，或（有具体时刻且时刻已过）。
+
+    「今天」这种只写日期的条目默认按 09:00 排序，时刻过了不算过期，
+    否则中午记一句「今天交作业」会立刻显示「已过 2 小时」。
+    """
+    due = _due_of(note)
+    if not due:
+        return False
+    if due.date() < now.date():
+        return True
+    return bool(note.get("has_time")) and due < now
+
+
 def sort_notes(notes: list[dict], now: datetime) -> list[dict]:
     """过期 > 有时间(近的在前，同级里高优先在前) > 随手记(高优先在前)。"""
 
     def key(n: dict):
         due = _due_of(n)
-        overdue = 0 if (due and due < now) else 1
-        bucket = 0 if overdue == 0 else (1 if due else 2)
+        over = is_overdue(n, now)
+        bucket = 0 if over else (1 if due else 2)
         return (bucket, -n.get("priority", 1), due or datetime.max)
 
     return sorted(notes, key=key)
@@ -152,6 +166,9 @@ def fmt_due(note: dict, now: datetime) -> str:
     if note.get("has_time"):
         base += f" {due.hour:02d}:{due.minute:02d}"
     if due < now:
+        # 只写日期的「今天」（默认 09:00 排序值）不算过期，不标已过
+        if not note.get("has_time") and due.date() == now.date():
+            return base
         hours = int((now - due).total_seconds() // 3600)
         if hours >= 48:
             base += f"（已过 {hours // 24} 天）"

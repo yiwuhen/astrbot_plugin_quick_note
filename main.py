@@ -347,7 +347,7 @@ class QuickNotePlugin(Star):
         floating: list[dict] = []
         for n in notes:
             due = memostore._due_of(n)
-            if due and due < now:
+            if memostore.is_overdue(n, now):
                 overdue.append(n)
             elif n.get("priority") == 2:
                 urgent.append(n)
@@ -461,7 +461,7 @@ class QuickNotePlugin(Star):
                     today_count += 1
                 if due < week_end:
                     week_count += 1
-            if due and due < now:
+            if memostore.is_overdue(n, now):
                 overdue.append(n)
             elif n.get("priority") == 2:
                 urgent.append(n)

@@ -192,16 +192,19 @@ def _fmt_when(item: dict, now: datetime) -> str:
     due = item.get("_due")
     if not isinstance(due, datetime):
         return "随时"
+    base = f"{due.month:02d}-{due.day:02d}"
+    if item.get("has_time"):
+        base += f" {due.hour:02d}:{due.minute:02d}"
     if due < now:
+        # 只写日期的「今天」（默认排序值）不算过期
+        if not item.get("has_time") and due.date() == now.date():
+            return base
         hours = int((now - due).total_seconds() // 3600)
         if hours >= 48:
             return f"已过 {hours // 24} 天"
         if hours >= 1:
             return f"已过 {hours} 小时"
         return "刚刚到期"
-    base = f"{due.month:02d}-{due.day:02d}"
-    if item.get("has_time"):
-        base += f" {due.hour:02d}:{due.minute:02d}"
     delta_days = (due.date() - now.date()).days
     if delta_days == 0:
         return f"今天 {due.hour:02d}:{due.minute:02d}" if item.get("has_time") else "今天"
@@ -607,7 +610,9 @@ def render_timetable_image(plan: dict, now: datetime, out_path: str, *,
                 pri = item.get("priority", 1)
                 bg, bar = _CARD_STYLE.get(pri, _CARD_STYLE[1])
                 due = item.get("_due")
-                overdue = isinstance(due, datetime) and due < now
+                overdue = (isinstance(due, datetime)
+                           and (due.date() < now.date()
+                                or (item.get("has_time") and due < now)))
                 if overdue:
                     bg, bar = "#FDEEEC", RED
                 c.rect((cx, cy, cx + card_w, cy + ch), bg, radius=6)

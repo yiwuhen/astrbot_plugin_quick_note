@@ -77,6 +77,15 @@ _RE_TIME = re.compile(
     r"([0-5]?\d|半|整|[一二三四五]?十[一二三四五六七八九]?)?分?(钟)?"
 )
 
+# 时段词（不带数字）：「今天晚上下班后…」这种，给出默认时刻
+_RE_PERIOD = re.compile(r"(深夜|凌晨|清晨|傍晚|中午|午后|下午|早上|上午|晚上|夜里)")
+_PERIOD_DEFAULT = {"凌晨": 6, "清晨": 6, "早上": 8, "上午": 9, "中午": 12,
+                   "午后": 13, "下午": 15, "傍晚": 18, "晚上": 20, "夜里": 21, "深夜": 22}
+
+# 事件之后：「下班后」「放学后」「晚饭后」 -> 默认时刻
+_RE_AFTER_EVENT = re.compile(r"(下班|放学|晚饭)(之?后|过后|了)")
+_AFTER_DEFAULT = {"下班": 18, "放学": 17, "晚饭": 19}
+
 # 优先级
 _RE_HIGH = re.compile(r"(紧急|很急|急事|急|尽快|尽快要|重要|马上要|asap|!{2,}|！{2,})", re.IGNORECASE)
 _RE_LOW = re.compile(r"(不着急|不急|有空(的时候|时)?|闲时|以后再说|低优先)")
@@ -260,11 +269,32 @@ def parse_note(text: str, now: datetime | None = None) -> dict | None:
         else:
             due = datetime(d.year, d.month, d.day, 9, 0)
             has_time = False
-            # 「今晚/明晚」没写时刻 -> 默认晚上 8 点
-            if "晚" in date_word and _RE_TIME.search(content) is None:
+            # 没写具体时刻：按 日期词带晚(今晚/明晚) > 紧跟的时段词(今天晚上…) >
+            # 紧跟的事件词(今天下班后…) 依次给默认时刻。时段词只在紧跟日期词时生效，
+            # 避免把「今天交报告，明天早上再说」里的「早上」错挂到今天。
+            tail = content[d_span[1]:d_span[1] + 5]
+            word_span = None
+            if "晚" in date_word:
                 due = datetime(d.year, d.month, d.day, 20, 0)
                 has_time = True
+            else:
+                m_local = _RE_PERIOD.search(tail)
+                if m_local and not tail[:m_local.start()].strip():
+                    word_span = (d_span[1] + m_local.start(), d_span[1] + m_local.end())
+                    due = datetime(d.year, d.month, d.day,
+                                   _PERIOD_DEFAULT[m_local.group(1)], 0)
+                    has_time = True
+                else:
+                    m_evt = _RE_AFTER_EVENT.search(tail)
+                    if (m_evt and m_evt.group(1) in _AFTER_DEFAULT
+                            and not tail[:m_evt.start()].strip()):
+                        word_span = (d_span[1] + m_evt.start(), d_span[1] + m_evt.end())
+                        due = datetime(d.year, d.month, d.day,
+                                       _AFTER_DEFAULT[m_evt.group(1)], 0)
+                        has_time = True
             spans = [d_span]
+            if has_time and word_span:
+                spans.append(word_span)
         time_raw = "".join(content[s:e] for s, e in spans)
         # 从后往前删除匹配片段
         for s, e in sorted(spans, reverse=True):
@@ -280,6 +310,14 @@ def parse_note(text: str, now: datetime | None = None) -> dict | None:
             has_time = True
             time_raw = content[t_span[0]:t_span[1]]
             content = content[:t_span[0]] + content[t_span[1]:]
+        else:
+            m_period = _RE_PERIOD.search(content)
+            if m_period:
+                h0 = _PERIOD_DEFAULT[m_period.group(1)]
+                due = now.replace(hour=h0, minute=0, second=0, microsecond=0)
+                if due <= now:
+                    due += timedelta(days=1)
+                has_time = True
 
     # 引导词与零碎
     content = _RE_LEAD.sub("", content)
