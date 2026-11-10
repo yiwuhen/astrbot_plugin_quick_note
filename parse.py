@@ -86,9 +86,13 @@ _PERIOD_DEFAULT = {"凌晨": 6, "清晨": 6, "早上": 8, "上午": 9, "中午":
 _RE_AFTER_EVENT = re.compile(r"(下班|放学|晚饭)(之?后|过后|了)")
 _AFTER_DEFAULT = {"下班": 18, "放学": 17, "晚饭": 19}
 
-# 优先级
-_RE_HIGH = re.compile(r"(紧急|很急|急事|急|尽快|尽快要|重要|马上要|asap|!{2,}|！{2,})", re.IGNORECASE)
-_RE_LOW = re.compile(r"(不着急|不急|有空(的时候|时)?|闲时|以后再说|低优先)")
+# 优先级（可带「挺/很/太…」修饰词和「的/了」后缀，删除时整体去掉，避免残留成「挺的」）
+_INTENS = r"(?:(?:挺|很|好|太|真|蛮|超|超级|特别|非常|相当|有点|有些)(?:地|得)?)"
+_RE_HIGH = re.compile(
+    _INTENS + r"?(紧急|很急|急事|急|尽快|尽快要|重要|马上要|asap|!{2,}|！{2,})" r"(的|了)?",
+    re.IGNORECASE,
+)
+_RE_LOW = re.compile(r"(不着急|不急|有空(的时候|时)?|闲时|以后再说|低优先)(的|了)?")
 
 # 开头引导词（随口说的部分，去掉才算内容）
 _RE_LEAD = re.compile(
@@ -332,7 +336,7 @@ def parse_note(text: str, now: datetime | None = None) -> dict | None:
     content = _RE_LEAD.sub("", content)
     content = _RE_REMIND_ME.sub("", content)
     content = _RE_TRAIL.sub("", content)
-    content = re.sub(r"\s{2,}", " ", content).strip(" ，,。.、；;！!？?")
+    content = re.sub(r"\s{2,}", " ", content).strip(" ，,。.、；;！!？?：:")
 
     if not content:
         return None

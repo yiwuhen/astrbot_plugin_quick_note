@@ -24,9 +24,9 @@
     "default": true
   },
   "image_week_timetable": {
-    "description": "周视图用课表样式",
+    "description": "周视图用网格样式",
     "type": "bool",
-    "hint": "开启后「本周 图」渲染成 7 列 × 时段（全天/上午/下午/晚上）的课表网格；关闭则用按天排列的列表样式",
+    "hint": "开启后「本周 图」渲染成 7 列 × 时段（全天/上午/下午/晚上）的网格卡片；关闭则用按天排列的列表样式",
     "default": true
   },
   "image_max_items": {

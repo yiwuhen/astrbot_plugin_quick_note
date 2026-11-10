@@ -401,12 +401,13 @@ def render_week_image(plan: dict, now: datetime, out_path: str, *,
     return c.save(out_path)
 
 
-# ------------------------------------------------------------------ 课表式周视图
+# ------------------------------------------------------------------ 网格式周视图
 
-TT_W = 1000          # 课表比清单宽一些，7 列才放得下
+TT_W = 1180          # 网格比清单宽一些，7 列才放得下
 TT_M = 26            # 页边距
 TT_AXIS = 58         # 左侧时段轴宽度
 HEAD_H = 54          # 表头（周一 / 11-10）
+TT_ROW_EMPTY = 42    # 整行为空时的高度（收窄，避免大片空白）
 
 CARD_PAD = 8
 LINE_H = 17
@@ -429,7 +430,7 @@ _CARD_STYLE = {
 
 
 def _slot_of(item: dict) -> str:
-    """把一条随记归到课表的时段。"""
+    """把一条随记归到时段的格子。"""
     due = item.get("_due")
     if not isinstance(due, datetime) or not item.get("has_time"):
         return "allday"
@@ -497,7 +498,7 @@ def _timetable_layout(plan: dict, font_path: str):
                 total += 16
             cells[(slot, di)] = (prepared, len(items))
             tallest = max(tallest, total)
-        row_h[slot] = max(52, tallest + 14)
+        row_h[slot] = (TT_ROW_EMPTY if tallest == 0 else tallest + 14)
     return col_w, card_w, cells, row_h, text_px
 
 
@@ -537,9 +538,9 @@ def _draw_extras(c: _Canvas, y: int, plan: dict, font_path: str, width: int) -> 
 
 
 def render_timetable_image(plan: dict, now: datetime, out_path: str, *,
-                           title: str = "本周课表", subtitle: str = "", right: str = "",
+                           title: str = "随手记 · 本周", subtitle: str = "", right: str = "",
                            footer: str = "", font_path: str = "") -> str:
-    """课表式周视图：7 列（周一~周日）× 4 行（全天/上午/下午/晚上）网格。
+    """网格式周视图：7 列（周一~周日）× 4 行（全天/上午/下午/晚上）。
 
     plan 结构与 render_week_image 相同。
     """
@@ -574,6 +575,11 @@ def render_timetable_image(plan: dict, now: datetime, out_path: str, *,
     # ---- 网格线 ----
     total_h = sum(row_h[_s] for _s, _ in _SLOTS)
     c.rect((grid_x, body_top, grid_x + grid_w, body_top + total_h), CARD, radius=0)
+    # 今天整列淡色底（必须画在网格线之前，否则会把线盖掉）
+    for di in range(7):
+        if di < len(days) and days[di].get("today"):
+            cx = grid_x + di * col_w
+            c.rect((cx + 1, body_top + 1, cx + col_w - 1, body_top + total_h - 1), "#FDF8F4")
     yy = body_top
     row_top = {}
     for slot, _label in _SLOTS:
@@ -581,15 +587,10 @@ def render_timetable_image(plan: dict, now: datetime, out_path: str, *,
         c.rect((TT_M, yy, TT_W - TT_M, yy + 1), LINE)
         yy += row_h[slot]
     c.rect((TT_M, yy, TT_W - TT_M, yy + 1), LINE)
-    # 竖线（含今天列的背景块，先铺色再画线）
+    # 竖线
     for di in range(8):
         lx = grid_x + di * col_w
         c.rect((lx, body_top, lx + 1, body_top + total_h), LINE)
-    # 今天整列淡色（在卡片下方、网格线之上重画会盖线，这里用极淡色放在卡片前）
-    for di in range(7):
-        if di < len(days) and days[di].get("today"):
-            cx = grid_x + di * col_w
-            c.rect((cx + 1, body_top + 1, cx + col_w - 1, body_top + total_h - 1), "#FDF8F4")
 
     # ---- 左侧时段轴 ----
     for slot, label in _SLOTS:

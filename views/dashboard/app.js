@@ -236,12 +236,20 @@ async function onListAction(event) {
   if (state.tab === "week") await refreshWeek();
 }
 
-/* ---------------------------------------------------------------- 周视图 */
+/* ---------------------------------------------------------------- 本周（7 列 × 时段网格） */
+
+const TT_SLOTS = [
+  ["allday", "全天", "不限时刻"],
+  ["morning", "上午", "06 - 12"],
+  ["afternoon", "下午", "12 - 18"],
+  ["evening", "晚上", "18 - 24"],
+];
+const TT_MAX_CARDS = 4;
 
 async function refreshWeek() {
   if (!state.session) {
-    $("#week-body").innerHTML = emptyBlock("还没有任何会话记录", "先在群里记一条，再来看周视图。");
-    $("#week-title").textContent = "本周";
+    $("#week-body").innerHTML = emptyBlock("还没有任何会话记录", "先在群里记一条，再来看本周安排。");
+    $("#week-title").textContent = "随手记 · 本周";
     return;
   }
   const data = await apiGet("week", { session: state.session, offset: state.weekOffset });
@@ -249,12 +257,22 @@ async function refreshWeek() {
   renderWeek(data);
 }
 
-function weekItem(note) {
-  const flag = note.priority === 2 ? "hot" : note.priority === 0 ? "calm" : "";
+function slotOf(note) {
+  if (!note.has_time || !note.clock) return "allday";
+  const h = parseInt(note.clock.slice(0, 2), 10);
+  if (Number.isNaN(h)) return "allday";
+  if (h < 12) return "morning";
+  if (h < 18) return "afternoon";
+  return "evening";
+}
+
+function weekCard(note) {
+  const flag = note.overdue ? "overdue" : note.priority === 2 ? "hot" : note.priority === 0 ? "calm" : "";
+  const meta = `#${note.id}${note.has_time && note.clock ? ` · ${note.clock}` : ""}${note.overdue ? " · 已过期" : ""}`;
   return `
-    <div class="w-item ${flag}">
-      <span class="w-time">${note.has_time ? esc(note.clock) : "全天"}</span>
-      <span class="w-text">${esc(note.text)}</span>
+    <div class="tt-card ${flag}">
+      <div class="tt-text">${esc(note.text)}</div>
+      <div class="tt-meta">${meta}</div>
     </div>`;
 }
 
@@ -274,26 +292,45 @@ function extraCard(icon, title, notes, showDate) {
 }
 
 function renderWeek(data) {
-  $("#week-title").textContent = `${data.title}（${data.start.slice(5)} ~ ${data.end.slice(5)}）`;
-  const grid = data.days
-    .map(
+  const total = data.days.reduce((sum, d) => sum + d.notes.length, 0);
+  $("#week-title").textContent = `随手记 · ${data.title}（${data.start.slice(5)} ~ ${data.end.slice(5)}）· 共 ${total} 条`;
+
+  // 表头：角标 + 周一~周日
+  const parts = ['<div class="tt-corner"></div>'];
+  parts.push(
+    ...data.days.map(
       (day) => `
-      <div class="day ${day.is_today ? "today" : ""}">
-        <div class="day-head">
-          <span class="day-name">${day.label}</span>
-          <span class="day-date">${day.short}</span>
-        </div>
-        <div class="day-notes">
-          ${day.notes.length ? day.notes.map(weekItem).join("") : '<div class="day-empty">·</div>'}
-        </div>
+      <div class="tt-head ${day.is_today ? "today" : ""}">
+        <span class="tt-day">${day.label}</span>
+        <span class="tt-date">${day.short}</span>
       </div>`
     )
-    .join("");
+  );
+  // 每个时段一行：时段轴 + 7 格
+  for (let si = 0; si < TT_SLOTS.length; si += 1) {
+    const [key, label, hint] = TT_SLOTS[si];
+    const isLast = si === TT_SLOTS.length - 1;
+    const cells = data.days.map((day, di) => {
+      const items = day.notes.filter((n) => slotOf(n) === key);
+      const shown = items.slice(0, TT_MAX_CARDS);
+      const more = items.length - shown.length;
+      const cls = [day.is_today ? "today" : "", isLast ? "last" : "", items.length ? "" : "sparse"]
+        .filter(Boolean)
+        .join(" ");
+      return `
+      <div class="tt-cell ${cls}${di === data.days.length - 1 ? " tt-col-last" : ""}">
+        ${shown.map(weekCard).join("")}
+        ${more > 0 ? `<div class="tt-more">还有 ${more} 条…</div>` : ""}
+      </div>`;
+    });
+    parts.push(`<div class="tt-axis ${isLast ? "last" : ""}"><strong>${label}</strong><em>${hint}</em></div>`);
+    parts.push(...cells);
+  }
   const extras = [];
   if (data.overdue.length) extras.push(extraCard("⚠️", "已过期", data.overdue, true));
   if (data.beyond.length) extras.push(extraCard("🔭", "更远", data.beyond, true));
   if (data.floating.length) extras.push(extraCard("📥", "不限时间", data.floating, false));
-  $("#week-body").innerHTML = `<div class="week-grid">${grid}</div>${extras.join("")}`;
+  $("#week-body").innerHTML = `<div class="tt-scroll"><div class="tt">${parts.join("")}</div></div>${extras.join("")}`;
 }
 
 /* ---------------------------------------------------------------- 配置 */
