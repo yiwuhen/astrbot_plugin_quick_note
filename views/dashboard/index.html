@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>随手记 · 数据面板</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo">📝</div>
+          <div class="brand-text">
+            <h1>随手记 · 数据面板</h1>
+            <p class="sub" id="subtitle">正在连接 AstrBot…</p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <label class="session-wrap">
+            <span class="session-label">会话</span>
+            <select id="session" class="select" title="切换会话"></select>
+          </label>
+          <button id="btn-refresh" class="btn ghost" title="重新读取数据">刷新</button>
+          <button id="btn-add" class="btn primary">＋ 记一条</button>
+        </div>
+      </header>
+
+      <section class="stats" id="stats"></section>
+
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-tab="list">清单</button>
+        <button class="tab" data-tab="week">周视图</button>
+        <button class="tab" data-tab="config">配置</button>
+      </nav>
+
+      <section class="panel" id="panel-list">
+        <div class="toolbar">
+          <div class="seg" id="status-seg">
+            <button class="seg-btn active" data-status="open">未完成</button>
+            <button class="seg-btn" data-status="done">已完成</button>
+          </div>
+          <input id="search" class="input search" type="search" placeholder="搜索内容…" autocomplete="off" />
+        </div>
+        <div id="list-body" class="list-body"></div>
+      </section>
+
+      <section class="panel hidden" id="panel-week">
+        <div class="toolbar">
+          <div class="week-nav">
+            <button class="btn ghost" id="week-prev">← 上一周</button>
+            <strong id="week-title">本周</strong>
+            <button class="btn ghost" id="week-next">下一周 →</button>
+          </div>
+          <button class="btn ghost" id="week-today">回到本周</button>
+        </div>
+        <div id="week-body"></div>
+      </section>
+
+      <section class="panel hidden" id="panel-config">
+        <div class="card cfg-card">
+          <div class="cfg-row">
+            <div class="cfg-text">
+              <h3>自动捕捉</h3>
+              <p>群里说「记住…」「别忘了…」时，自动收进清单，不必发命令</p>
+            </div>
+            <label class="switch"><input type="checkbox" id="cfg-auto" /><span></span></label>
+          </div>
+          <div class="cfg-row">
+            <div class="cfg-text">
+              <h3>AI 直接调用</h3>
+              <p>把记事/查询/打勾注册成 AI 工具（Function Calling），自然语言即可触发</p>
+            </div>
+            <label class="switch"><input type="checkbox" id="cfg-llm" /><span></span></label>
+          </div>
+          <div class="cfg-row">
+            <div class="cfg-text">
+              <h3>清单每组显示条数</h3>
+              <p>聊天里「清单」每个分组最多列几条，避免消息过长（3 ~ 50）</p>
+            </div>
+            <input class="input num" id="cfg-max" type="number" min="3" max="50" step="1" />
+          </div>
+          <div class="cfg-actions">
+            <button class="btn primary" id="cfg-save">保存配置</button>
+            <span class="hint" id="cfg-hint"></span>
+          </div>
+        </div>
+        <div class="card tip-card">
+          <h3>数据在哪</h3>
+          <p id="data-path">
+            所有记录存放在 AstrBot 的 <code>data/plugin_data/astrbot_plugin_quick_note/notes.json</code>，
+            按会话隔离，重装插件不会丢。面板里的修改会立即写回，聊天里再发「清单」就能看到。
+          </p>
+        </div>
+      </section>
+
+      <footer class="foot">
+        <span id="demo-flag" class="demo-flag hidden">预览模式 · 未连接 AstrBot</span>
+        <span>随手记 · 数据面板</span>
+      </footer>
+    </div>
+
+    <div class="modal hidden" id="modal">
+      <div class="modal-mask" id="modal-mask"></div>
+      <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <h2 id="modal-title">记一条</h2>
+        <label class="field">
+          <span>内容</span>
+          <input id="f-content" class="input" placeholder="明天下午3点交报告" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>时间（可选，留空则从内容里自动识别）</span>
+          <input id="f-due" class="input" type="datetime-local" />
+        </label>
+        <div class="field">
+          <span>优先级</span>
+          <div class="seg" id="f-pri">
+            <button class="seg-btn" data-pri="0">🌿 不急</button>
+            <button class="seg-btn active" data-pri="1">普通</button>
+            <button class="seg-btn" data-pri="2">🔥 紧急</button>
+          </div>
+        </div>
+        <p class="err" id="modal-err"></p>
+        <div class="modal-actions">
+          <button class="btn ghost" id="modal-cancel">取消</button>
+          <button class="btn primary" id="modal-save">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

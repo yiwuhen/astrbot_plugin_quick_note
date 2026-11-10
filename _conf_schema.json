@@ -16,5 +16,22 @@
     "type": "int",
     "hint": "「清单」视图里每个分组（已过期/紧急/有时间/随手记）最多列多少条，避免消息过长",
     "default": 10
+  },
+  "image_output": {
+    "description": "清单/周视图支持出图片",
+    "type": "bool",
+    "hint": "开启后「清单 图」「本周 图」会渲染成图片卡片发出；环境缺 Pillow 或中文字体时自动回退纯文本",
+    "default": true
+  },
+  "image_max_items": {
+    "description": "图片里每组最多几条",
+    "type": "int",
+    "hint": "图片卡片中每个分组最多展示的条目数（3~20），超出显示「还有 N 条…」",
+    "default": 8
+  },
+  "image_font": {
+    "description": "图片用中文字体路径（可选）",
+    "type": "string",
+    "hint": "留空自动探测（Windows 微软雅黑 / macOS 苹方 / Linux Noto、文泉驿）；特殊环境可手动指定 ttf/ttc/otf 路径"
   }
 }
