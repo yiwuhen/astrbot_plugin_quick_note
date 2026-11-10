@@ -137,7 +137,7 @@ def _strip_cmd(text: str, *names: str) -> str:
     _PLUGIN_ID,
     "WuHen",
     "随手记：随口一句自动记住，按优先级整理成清单，也能排成周视图",
-    "0.4.0",
+    "0.4.1",
 )
 class QuickNotePlugin(Star):
     def __init__(self, context: Context, config: dict | None = None):

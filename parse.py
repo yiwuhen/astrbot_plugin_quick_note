@@ -218,9 +218,12 @@ def _find_date(text: str, base: datetime):
     return None
 
 
-def _find_time(text: str, date_word: str | None):
-    """找第一个时刻词，返回 (hour, minute, matched_text, span) 或 None。"""
-    m = _RE_TIME.search(text)
+def _find_time(text: str, date_word: str | None, start: int = 0):
+    """找第一个时刻词，返回 (hour, minute, matched_text, span) 或 None。
+
+    start：从日期词之后开始搜，避免「今晚8点」的「晚」被时刻正则再吃一遍。
+    """
+    m = _RE_TIME.search(text, start)
     if not m:
         return None
     meridiem, h_raw, m_raw = m.group(1), m.group(2), m.group(3)
@@ -260,7 +263,7 @@ def parse_note(text: str, now: datetime | None = None) -> dict | None:
     if date_info:
         d, _shown, d_span = date_info
         date_word = _shown
-        t = _find_time(content, date_word)
+        t = _find_time(content, date_word, d_span[1])
         if t:
             h, minute, _tt, t_span = t
             due = datetime(d.year, d.month, d.day, h, minute)
@@ -296,8 +299,14 @@ def parse_note(text: str, now: datetime | None = None) -> dict | None:
             if has_time and word_span:
                 spans.append(word_span)
         time_raw = "".join(content[s:e] for s, e in spans)
-        # 从后往前删除匹配片段
-        for s, e in sorted(spans, reverse=True):
+        # 合并重叠片段后从后往前删除，防止两个匹配重叠时误删中间文字
+        merged: list[tuple[int, int]] = []
+        for s, e in sorted(spans):
+            if merged and s < merged[-1][1]:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], e))
+            else:
+                merged.append((s, e))
+        for s, e in sorted(merged, reverse=True):
             content = content[:s] + content[e:]
     else:
         # 只有时刻没有日期：今天，已过则明天

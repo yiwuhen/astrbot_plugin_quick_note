@@ -16,7 +16,7 @@ desc: |
   - 多群隔离：每个会话独立清单；数据落 data/plugin_data/，重装不丢
 
   命令：记 / 清单 / 本周 / 随手记帮助。
-version: v0.4.0
+version: v0.4.1
 author: WuHen
 repo: https://github.com/yiwuhen/astrbot_plugin_quick_note
 category: 工具
