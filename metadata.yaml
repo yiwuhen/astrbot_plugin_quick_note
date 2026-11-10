@@ -11,11 +11,12 @@ desc: |
   - AI 直接调用：注册为 AI 工具（Function Calling），直接说「别忘了周五交周报」「这周有什么安排」即可，不必记命令
   - WebUI 数据面板：插件详情页打开可视化面板，查看/编辑所有会话的记录、按周查看、直接改配置
   - 图片卡片：「清单 图」「本周 图」把清单/周安排渲染成好看的图片发出来，AI 场景说「发张图看看」即可
+  - 课表式周视图：图片版周视图排成 7 列 × 时段（全天/上午/下午/晚上）网格，今天整列高亮
   - 自动捕捉：群里说「记住…」「别忘了…」自动收进清单
   - 多群隔离：每个会话独立清单；数据落 data/plugin_data/，重装不丢
 
   命令：记 / 清单 / 本周 / 随手记帮助。
-version: v0.3.1
+version: v0.4.0
 author: WuHen
 repo: https://github.com/yiwuhen/astrbot_plugin_quick_note
 category: 工具

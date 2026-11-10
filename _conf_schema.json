@@ -23,6 +23,12 @@
     "hint": "开启后「清单 图」「本周 图」会渲染成图片卡片发出；环境缺 Pillow 或中文字体时自动回退纯文本",
     "default": true
   },
+  "image_week_timetable": {
+    "description": "周视图用课表样式",
+    "type": "bool",
+    "hint": "开启后「本周 图」渲染成 7 列 × 时段（全天/上午/下午/晚上）的课表网格；关闭则用按天排列的列表样式",
+    "default": true
+  },
   "image_max_items": {
     "description": "图片里每组最多几条",
     "type": "int",

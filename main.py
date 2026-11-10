@@ -91,8 +91,8 @@ _HELP_TEXT = """📝 随手记 · 命令
 清单                      按优先级排列（过期/紧急/有时间/随手记）
 清单 图                   上面的清单做成图片卡片发给你
 清单 本周                 本周周视图（今天高亮）
-清单 本周 图              周视图做成图片日历
-本周 / 本周 图            同上（「本周 下周图」看下周）
+清单 本周 图              周视图做成课表图片（7列 × 时段）
+本周 / 本周 图            同上（「本周 下周图」看下周课表）
 清单 已完成               最近完成/删除的记录
 
 【整理】
@@ -137,7 +137,7 @@ def _strip_cmd(text: str, *names: str) -> str:
     _PLUGIN_ID,
     "WuHen",
     "随手记：随口一句自动记住，按优先级整理成清单，也能排成周视图",
-    "0.3.1",
+    "0.4.0",
 )
 class QuickNotePlugin(Star):
     def __init__(self, context: Context, config: dict | None = None):
@@ -538,7 +538,7 @@ class QuickNotePlugin(Star):
             return None, fallback
 
     def _render_week(self, key: str, offset: int = 0):
-        """出周视图图片，返回 (图片路径, 降级文本)。"""
+        """出周视图图片（默认课表网格样式），返回 (图片路径, 降级文本)。"""
         fallback = self._build_week(key, offset)
         if not self._image_enabled():
             return None, fallback
@@ -548,22 +548,26 @@ class QuickNotePlugin(Star):
             now = datetime.now()
             if count == 0 and not plan["later"] and not plan["floating"]:
                 return None, fallback
-            title = "本周安排" if offset == 0 else ("下周安排" if offset == 1 else f"+{offset} 周安排")
+            title = "本周课表" if offset == 0 else ("下周课表" if offset == 1 else f"+{offset} 周课表")
+            if not self.config.get("image_week_timetable", True):
+                title = title.replace("课表", "安排")
             end_d = week_end - timedelta(days=1)
             out = os.path.join(
                 self._image_dir(),
                 f"week_{now.strftime('%Y%m%d%H%M%S')}_{os.urandom(3).hex()}.png",
             )
-            path = render.render_week_image(
-                plan, now, out,
+            common = dict(
                 title=title,
                 subtitle=f"{week_start.month:02d}-{week_start.day:02d} ~ "
                          f"{end_d.month:02d}-{end_d.day:02d} · 共 {count} 条",
                 right=f"第 {now.isocalendar()[1] + offset} 周",
-                footer="随手记 · 「清单」看优先级排列 · 随口一句就能加",
-                per_day=6,
+                footer="随手记 · 说「记 周三晚8点开会」就能排进来",
                 font_path=self._image_font(),
             )
+            if self.config.get("image_week_timetable", True):
+                path = render.render_timetable_image(plan, now, out, **common)
+            else:
+                path = render.render_week_image(plan, now, out, per_day=6, **common)
             self._maybe_cleanup_images()
             return path, fallback
         except Exception as exc:
