@@ -1,0 +1,8 @@
+{
+  "views": {
+    "dashboard": {
+      "title": "Dashboard",
+      "description": "Browse and edit quick notes for every chat, view the week on a 7-day × time-slot grid, and tweak plugin settings."
+    }
+  }
+}
